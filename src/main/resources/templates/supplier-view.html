@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Supplier Ledger</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+
+        /* BALANCE BOX */
+        .balance-box { background: #ffebee; border: 1px solid #ffcdd2; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        .balance-val { font-size: 32px; font-weight: bold; color: #c62828; display: block; }
+        .label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* FORMS */
+        input, select { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        label { font-size: 13px; font-weight: bold; color: #555; }
+
+        .btn-bill { background: #e67e22; color: white; width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-pay { background: #27ae60; color: white; width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+        /* HISTORY TABLE */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #34495e; color: white; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
+
+    </style>
+</head>
+<body>
+
+<a href="/suppliers" style="text-decoration: none; color: #555; font-weight: bold;">← Back to Suppliers List</a>
+<br><br>
+
+<div class="container">
+
+    <div>
+        <div class="balance-box">
+            <span class="label">Total Amount You Owe</span>
+            <span class="balance-val">₹ <span th:text="${supplier.currentBalance}">0.00</span></span>
+            <div style="margin-top: 5px; font-size: 14px; font-weight: bold;" th:text="${supplier.agencyName}">Agency</div>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+            <h3>📥 Enter Purchase Bill</h3>
+            <form action="/suppliers/purchase" method="post">
+                <input type="hidden" name="supplierId" th:value="${supplier.id}">
+
+                <label>Bill / Invoice Number</label>
+                <input type="text" name="billNo" placeholder="e.g. INV-2025-001" required>
+
+                <label>Total Bill Amount</label>
+                <input type="number" step="0.01" name="amount" placeholder="0.00" required>
+
+                <label>Payment Mode</label>
+                <select name="mode">
+                    <option value="Credit">Credit (Udhaar) - Add to Debt</option>
+                    <option value="Cash">Cash (Paid Immediately)</option>
+                    <option value="Online">Online / Bank Transfer</option>
+                </select>
+
+                <button type="submit" class="btn-bill">Save Bill</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3>💸 Pay Supplier</h3>
+            <form action="/suppliers/pay" method="post">
+                <input type="hidden" name="supplierId" th:value="${supplier.id}">
+
+                <label>Amount Being Paid</label>
+                <input type="number" step="0.01" name="amount" placeholder="0.00" required>
+
+                <button type="submit" class="btn-pay">Record Payment</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>📜 Unified Account Statement</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Particulars</th>
+                <th style="color: #c0392b;">Credit (Bill)</th>
+                <th style="color: #27ae60;">Debit (Paid)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="entry : ${ledgerEntries}">
+                <td th:text="${#temporals.format(entry.date, 'dd-MMM-yyyy')}">Date</td>
+                <td th:text="${entry.description}">-</td>
+
+                <td>
+                        <span th:if="${entry.type == 'CREDIT'}" style="color: #c0392b; font-weight: bold;"
+                              th:text="'₹ ' + ${entry.amount}"></span>
+                </td>
+
+                <td>
+                        <span th:if="${entry.type == 'DEBIT'}" style="color: #27ae60; font-weight: bold;"
+                              th:text="'₹ ' + ${entry.amount}"></span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p th:if="${ledgerEntries.empty}" style="text-align: center; color: #777; margin-top: 20px;">
+            No transaction records found.
+        </p>
+    </div>
+
+</div>
+
+</body>
+</html>

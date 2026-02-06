@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Business Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        /* NAV TABS (NEW) */
+        .nav { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { background: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; color: #2c3e50; font-weight: bold; border: 1px solid #ddd; }
+        .tab:hover { background: #eee; }
+        .active-tab { background: #2c3e50; color: white; border-color: #2c3e50; }
+
+        /* HEADER & DATE PICKER */
+        .header-box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
+        .date-group { display: flex; gap: 10px; align-items: center; }
+        input[type="date"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 8px 15px; background: #2c3e50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+
+        /* STAT CARDS */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #ccc; }
+        .card-blue { border-left-color: #3498db; }
+        .card-green { border-left-color: #27ae60; }
+        .card-red { border-left-color: #c0392b; }
+
+        .stat-val { font-size: 24px; font-weight: bold; margin-top: 5px; display: block; }
+        .stat-label { font-size: 13px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* GRAPH SECTION */
+        .chart-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; height: 350px; }
+    </style>
+</head>
+<body>
+
+<div style="background: #2c3e50; padding: 10px 20px; margin-bottom: 20px; border-radius: 5px;">
+    <a href="/" style="color: white; text-decoration: none; font-weight: bold;">🏠 Home</a>
+</div>
+
+<div class="container">
+
+    <div class="nav">
+        <a href="/reports" class="tab active-tab">📊 Dashboard</a>
+        <a href="/reports/daybook" class="tab">📅 Day Book</a>
+        <a href="/reports/items" class="tab">📦 Item Sales</a>
+        <a href="/reports/stock" class="tab">🏭 Stock Value</a>
+    </div>
+
+    <div class="header-box">
+        <h2 style="margin:0;">📊 Analytics Dashboard</h2>
+        <form action="/reports" method="get" class="date-group">
+            <label>From:</label>
+            <input type="date" name="startDate" th:value="${startDate}" required>
+            <label>To:</label>
+            <input type="date" name="endDate" th:value="${endDate}" required>
+            <button type="submit">Update</button>
+        </form>
+    </div>
+
+    <div class="stats-grid">
+        <div class="card card-blue">
+            <span class="stat-label">Total Sales (Revenue)</span>
+            <span class="stat-val">₹ <span th:text="${totalRevenue}">0.00</span></span>
+        </div>
+
+        <div class="card card-red">
+            <span class="stat-label">Expenses</span>
+            <span class="stat-val" style="color: #c0392b;">- ₹ <span th:text="${totalExpenses}">0.00</span></span>
+        </div>
+
+        <div class="card card-green">
+            <span class="stat-label">Net Profit</span>
+            <span class="stat-val" style="color: #27ae60;">₹ <span th:text="${totalProfit}">0.00</span></span>
+        </div>
+
+        <div class="card">
+            <span class="stat-label">Cash In Hand</span>
+            <span class="stat-val">₹ <span th:text="${splitCash.add(splitUPI).subtract(totalExpenses)}">0.00</span></span>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="salesChart"></canvas>
+    </div>
+
+</div>
+
+<script th:inline="javascript">
+    var labels = /*[[${chartLabels}]]*/ [];
+    var data = /*[[${chartData}]]*/ [];
+
+    const ctx = document.getElementById('salesChart');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daily Sales (₹)',
+                data: data,
+                backgroundColor: '#3498db',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Day Book</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        .header-box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
+
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #34495e; color: white; }
+
+        .tag { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; }
+        .tag-SALE { background: #3498db; }
+        .tag-EXPENSE { background: #e74c3c; }
+        .tag-RECEIPT { background: #27ae60; }
+        .tag-PAYMENT { background: #f39c12; }
+
+        .amt-in { color: #27ae60; font-weight: bold; }
+        .amt-out { color: #c0392b; font-weight: bold; }
+
+        /* Nav Tabs */
+        .nav { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { background: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; color: #2c3e50; font-weight: bold; border: 1px solid #ddd; }
+        .tab:hover { background: #eee; }
+        .active-tab { background: #2c3e50; color: white; border-color: #2c3e50; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="background: #2c3e50; padding: 10px 20px; margin-bottom: 20px; border-radius: 5px;">
+        <a href="/" style="color: white; text-decoration: none; font-weight: bold;">🏠 Home</a>
+    </div>
+
+    <div class="nav">
+        <a href="/reports" class="tab">📊 Dashboard</a>
+        <a href="/reports/daybook" class="tab active-tab">📅 Day Book</a>
+        <a href="/reports/items" class="tab">📦 Item Sales</a>
+        <a href="/reports/stock" class="tab">🏭 Stock Value</a>
+    </div>
+
+    <div class="header-box">
+        <h2 style="margin:0;">📅 Day Book (Transaction Log)</h2>
+        <form action="/reports/daybook" method="get">
+            <input type="date" name="date" th:value="${date}" required style="padding: 8px; border:1px solid #ddd; border-radius:4px;">
+            <button type="submit" style="padding: 8px 15px; background: #2c3e50; color: white; border:none; border-radius:4px; cursor:pointer;">Go</button>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Mode</th>
+            <th>Amount IN (+)</th>
+            <th>Amount OUT (-)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="e : ${entries}">
+            <td th:text="${#temporals.format(e.time, 'HH:mm')}">10:00</td>
+            <td>
+                <span th:class="'tag tag-' + ${e.type}" th:text="${e.type}">SALE</span>
+            </td>
+            <td th:text="${e.description}">Desc</td>
+            <td th:text="${e.mode}">Cash</td>
+            <td>
+                <span th:if="${e.amountIn > 0}" class="amt-in" th:text="'₹ ' + ${e.amountIn}"></span>
+            </td>
+            <td>
+                <span th:if="${e.amountOut > 0}" class="amt-out" th:text="'₹ ' + ${e.amountOut}"></span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div th:if="${entries.empty}" style="text-align: center; padding: 40px; color: #777;">
+        No transactions recorded for this date.
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>New Sale - AgriShop</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f8; padding: 20px; display: flex; gap: 20px; }
+        .selection-panel { flex: 1; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: fit-content; }
+        .cart-panel { flex: 1; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); min-height: 500px; display: flex; flex-direction: column; }
+        h2 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #27ae60; padding-bottom: 10px; }
+        label { font-weight: bold; display: block; margin-top: 15px; color: #555; }
+        select, input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+
+        .add-btn { background-color: #2980b9; color: white; width: 100%; padding: 12px; border: none; border-radius: 5px; margin-top: 20px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .checkout-btn { background-color: #27ae60; color: white; width: 100%; padding: 15px; border: none; border-radius: 5px; margin-top: 20px; cursor: pointer; font-size: 18px; font-weight: bold; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; border-bottom: 2px solid #ddd; padding: 10px; color: #7f8c8d; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        .total-section { margin-top: auto; border-top: 2px solid #eee; padding-top: 20px; text-align: right; font-size: 1.5em; font-weight: bold; color: #2c3e50; }
+        .remove-btn { color: red; cursor: pointer; font-weight: bold; }
+
+        .price-toggle { background: #eee; padding: 10px; border-radius: 5px; display: flex; gap: 15px; align-items: center; margin-bottom: 15px; border: 1px solid #ddd; }
+        .badge-ws { background: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; display: none;}
+
+        /* NEW: Balance Badge Style */
+        .balance-alert { font-size: 12px; font-weight: bold; margin-top: 5px; display: none; }
+        .balance-red { color: #c0392b; } /* Owe us money */
+        .balance-green { color: #27ae60; } /* Advance/Clear */
+    </style>
+</head>
+<body>
+<div style="background: #2c3e50; padding: 10px 20px; margin-bottom: 20px;">
+    <a href="/" style="color: white; text-decoration: none; font-weight: bold;">🏠 Home Dashboard</a>
+</div>
+<div class="selection-panel">
+    <h2>🛍️ Select Items</h2>
+
+    <div class="price-toggle">
+        <span>Billing Mode:</span>
+        <div class="radio-group">
+            <input type="radio" name="priceMode" value="retail" checked onchange="updatePriceMode()"> Retail
+        </div>
+        <div class="radio-group">
+            <input type="radio" name="priceMode" value="wholesale" onchange="updatePriceMode()"> Wholesale
+        </div>
+    </div>
+
+    <label>Select Product</label>
+    <select id="productSelect">
+        <option value="">-- Choose Product --</option>
+        <th:block th:each="p : ${products}">
+            <option th:value="${p.id}"
+                    th:data-name="${p.name}"
+                    th:data-unit="${p.unitType}"
+                    th:data-retail="${p.retailPricePerUnit}"
+                    th:data-wholesale="${p.wholesalePricePerUnit != null ? p.wholesalePricePerUnit : p.retailPricePerUnit}"
+                    th:text="${p.name} + ' (Stock: ' + ${p.totalStock} + ')'">
+                Urea
+            </option>
+        </th:block>
+    </select>
+
+    <label>Quantity <span id="unitLabel" style="font-weight: normal; color: #7f8c8d;"></span></label>
+    <input type="number" id="qtyInput" placeholder="0.0" step="0.1">
+
+    <button class="add-btn" onclick="addToCart()">Add to Bill ⬇</button>
+
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+
+    <h3>👤 Customer Details</h3>
+
+    <label>Phone Number <span style="color:red; font-size:12px;">(Type to Auto-Find)</span></label>
+    <input type="text" id="custPhone" placeholder="Enter 10 digit Mobile No.">
+
+    <div id="balanceMsg" class="balance-alert">
+        Old Balance: ₹ <span id="oldBal">0.00</span>
+    </div>
+
+    <label>Customer Name</label>
+    <input type="text" id="custName" placeholder="Name will pop up...">
+
+    <label>Payment Mode</label>
+    <select id="payMode">
+        <option value="Cash">Cash</option>
+        <option value="UPI">UPI / Online</option>
+        <option value="Credit">Udhaar (Credit)</option>
+    </select>
+</div>
+
+<div class="cart-panel">
+    <h2>🧾 Current Bill <span id="modeBadge" class="badge-ws">WHOLESALE</span></h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody id="cartTableBody"></tbody>
+    </table>
+
+    <div class="total-section">
+        Total: ₹ <span id="grandTotal">0.00</span>
+    </div>
+
+    <button class="checkout-btn" onclick="submitSale()">✅ Complete Sale</button>
+</div>
+
+<script>
+    let cart = [];
+    let isWholesale = false;
+
+    // --- NEW: AUTO CUSTOMER FETCH ---
+    document.getElementById('custPhone').addEventListener('input', function() {
+        const phone = this.value;
+
+        // Only search if length is reasonable (e.g. 10 digits)
+        if (phone.length >= 10) {
+            fetch('/customers/search?phone=' + phone)
+                .then(response => {
+                    if (response.ok) return response.json();
+                    throw new Error('Not Found');
+                })
+                .then(data => {
+                    // FOUND! Auto-fill details
+                    document.getElementById('custName').value = data.name;
+
+                    // Show Old Balance Warning
+                    const balElem = document.getElementById('balanceMsg');
+                    const balSpan = document.getElementById('oldBal');
+
+                    balElem.style.display = 'block';
+                    balSpan.innerText = data.currentBalance.toFixed(2);
+
+                    if(data.currentBalance > 0) {
+                        balElem.className = 'balance-alert balance-red';
+                        balElem.innerHTML = '⚠️ Pendng Udhaar: ₹ ' + data.currentBalance.toFixed(2);
+                    } else {
+                        balElem.className = 'balance-alert balance-green';
+                        balElem.innerHTML = '✅ No Dues (Balance: ₹ ' + data.currentBalance.toFixed(2) + ')';
+                    }
+                })
+                .catch(err => {
+                    // NOT FOUND: Clear name so they can type a new one
+                    // Don't clear if user is manually typing, but here it's safer
+                    // Optional: document.getElementById('custName').value = '';
+                    document.getElementById('balanceMsg').style.display = 'none';
+                });
+        }
+    });
+    // --------------------------------
+
+    function updatePriceMode() {
+        const radios = document.getElementsByName('priceMode');
+        for (let r of radios) {
+            if (r.checked && r.value === 'wholesale') {
+                isWholesale = true;
+                document.getElementById('modeBadge').style.display = 'inline-block';
+            } else if (r.checked) {
+                isWholesale = false;
+                document.getElementById('modeBadge').style.display = 'none';
+            }
+        }
+    }
+
+    document.getElementById('productSelect').addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        const unit = selected.getAttribute('data-unit');
+        document.getElementById('unitLabel').innerText = unit ? '(' + unit + ')' : '';
+    });
+
+    function addToCart() {
+        const select = document.getElementById('productSelect');
+        const selectedOption = select.options[select.selectedIndex];
+        const qty = parseFloat(document.getElementById('qtyInput').value);
+
+        if (!select.value || !qty || qty <= 0) {
+            alert("Please select a product and valid quantity!");
+            return;
+        }
+
+        const retailPrice = parseFloat(selectedOption.getAttribute('data-retail'));
+        const wholesalePrice = parseFloat(selectedOption.getAttribute('data-wholesale'));
+
+        const finalPrice = isWholesale ? wholesalePrice : retailPrice;
+
+        const productId = select.value;
+        const name = selectedOption.getAttribute('data-name');
+        const unit = selectedOption.getAttribute('data-unit');
+
+        const lineTotal = finalPrice * qty;
+
+        cart.push({ productId, name, qty, price: finalPrice, unit, lineTotal });
+
+        document.getElementById('qtyInput').value = '';
+        renderCart();
+    }
+
+    function renderCart() {
+        const tbody = document.getElementById('cartTableBody');
+        tbody.innerHTML = '';
+        let total = 0;
+
+        cart.forEach((item, index) => {
+            total += item.lineTotal;
+            const row = `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.qty} ${item.unit}</td>
+                    <td>${item.price.toFixed(2)}</td>
+                    <td>${item.lineTotal.toFixed(2)}</td>
+                    <td><span class="remove-btn" onclick="removeItem(${index})">X</span></td>
+                </tr>`;
+            tbody.innerHTML += row;
+        });
+
+        document.getElementById('grandTotal').innerText = total.toFixed(2);
+    }
+
+    function removeItem(index) {
+        cart.splice(index, 1);
+        renderCart();
+    }
+
+    function submitSale() {
+        if (cart.length === 0) { alert("Cart is empty!"); return; }
+
+        const phone = document.getElementById('custPhone').value;
+        const mode = document.getElementById('payMode').value;
+
+        if (mode === 'Credit' && !phone) {
+            alert("❌ For Credit (Udhaar) sales, Phone Number is REQUIRED!");
+            return;
+        }
+
+        const saleData = {
+            customerName: document.getElementById('custName').value || "Walk-in",
+            customerPhone: phone,
+            paymentMode: mode,
+            cartItems: cart.map(item => ({
+                productId: item.productId,
+                quantity: item.qty,
+                price: item.price
+            }))
+        };
+
+        fetch('/sales/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(saleData)
+        })
+        .then(response => response.json())
+        .then(saleId => {
+            if(saleId) { window.location.href = '/sale/invoice/' + saleId; }
+            else { alert("Error processing sale"); }
+        })
+        .catch(err => alert("Error: " + err));
+    }
+</script>
+
+</body>
+</html>

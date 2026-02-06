@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Expense Manager</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; color: #c0392b; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+
+        input, select, textarea { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .btn-save { background: #c0392b; color: white; width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #34495e; color: white; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+<div style="background: #2c3e50; padding: 10px 20px; margin-bottom: 20px;">
+    <a href="/" style="color: white; text-decoration: none; font-weight: bold;">🏠 Home</a>
+</div>
+
+<div class="container">
+
+    <div class="card">
+        <h3>💸 Add New Expense</h3>
+        <form action="/expenses/save" method="post">
+            <label>Category</label>
+            <select name="category">
+                <option value="Rent">Shop Rent</option>
+                <option value="Salary">Staff Salary</option>
+                <option value="Electricity">Electricity Bill</option>
+                <option value="Transport">Transport / Loading</option>
+                <option value="Food">Tea / Snacks</option>
+                <option value="Other">Other / Miscellaneous</option>
+            </select>
+
+            <label>Amount (₹)</label>
+            <input type="number" step="0.01" name="amount" placeholder="0.00" required>
+
+            <label>Description</label>
+            <textarea name="description" rows="3" placeholder="Details (e.g. Paid to Driver)"></textarea>
+
+            <button type="submit" class="btn-save">Record Expense</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Recent Expenses (Last 30 Days)</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Desc</th>
+                <th>Amount</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="e : ${expenses}">
+                <td th:text="${#temporals.format(e.date, 'dd-MMM')}">Date</td>
+                <td>
+                        <span style="background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold;"
+                              th:text="${e.category}">Rent</span>
+                </td>
+                <td th:text="${e.description}">-</td>
+                <td style="color: #c0392b; font-weight: bold;" th:text="'₹ ' + ${e.amount}">500</td>
+                <td>
+                    <a th:href="@{/expenses/delete(id=${e.id})}" style="color: red; text-decoration: none;" onclick="return confirm('Delete this entry?');">✖</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <p th:if="${expenses.empty}" style="text-align: center; color: #777; margin-top: 20px;">No expenses recorded recently.</p>
+    </div>
+
+</div>
+</body>
+</html>
