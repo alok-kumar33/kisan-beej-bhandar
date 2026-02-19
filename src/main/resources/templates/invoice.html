@@ -41,8 +41,8 @@
 
 <div class="header">
     <div class="shop-name">KISAN BEEJ BHANDAR</div>
-    <div class="meta">Near Main Market, Kattankulathur</div>
-    <div class="meta">Phone: 9876543210</div>
+    <div class="meta">Barahathawa-7, Sarlahi</div>
+    <div class="meta">Phone: 9854036459</div>
 </div>
 
 <div class="bill-details">
@@ -64,7 +64,9 @@
     <div class="text-right">
         <strong>Invoice #:</strong> <span th:text="${sale.id}">001</span><br>
         <strong>Date:</strong> <span th:text="${#temporals.format(sale.saleDate, 'dd-MM-yyyy HH:mm')}">Date</span><br>
-        <strong>Payment:</strong> <span th:text="${sale.paymentMode}">Cash</span>
+        <strong>Payment:</strong> <span th:text="${sale.paymentMode}">Cash</span><br>
+
+        <strong>Billed By:</strong> <span th:text="${sale.createdBy != null ? sale.createdBy : 'Admin'}">Staff</span>
     </div>
 </div>
 

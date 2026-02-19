@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Find Invoice - Kisan Beej Bhandar</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #e8f5e9 100%);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+            margin: 0;
+        }
+        .search-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            border-top: 5px solid #3498db;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0 20px 0;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 18px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: #3498db;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #c0392b;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 14px;
+            border-left: 4px solid #c0392b;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 25px;
+            color: #95a5a6;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+<div class="search-card">
+    <h2>🔍 Find Old Bill</h2>
+    <div class="subtitle">Enter the Bill Number to reprint or view details.</div>
+
+    <div th:if="${error}" class="error" th:text="${error}"></div>
+
+    <form action="/invoice/find" method="post">
+        <input type="number" name="billId" placeholder="e.g. 105" required autocomplete="off">
+        <button type="submit">Search Invoice</button>
+    </form>
+
+    <a href="/" class="back-link">← Back to Dashboard</a>
+</div>
+
+</body>
+</html>

@@ -8,7 +8,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Controller
 public class HomeController {
@@ -21,14 +20,17 @@ public class HomeController {
 
     @GetMapping("/")
     public String home(Model model) {
-        // Quick Stats for the Dashboard
-        model.addAttribute("productCount", productRepository.count());
-        model.addAttribute("saleCount", saleRepository.count()); // Total lifetime sales
+        // NOTE: We removed the Low Stock & Expiry logic from here.
+        // It is now handled by AlertController.java.
+        // This keeps the dashboard fast and clean!
 
-        // In a real app, we would query "Sales Today" specifically,
-        // but for now, total count is a good placeholder.
+        // 1. Stats for the Boxes (Total Items & Total Sales)
+        model.addAttribute("productCount", productRepository.count());
+        model.addAttribute("saleCount", saleRepository.count());
+
+        // 2. Date
         model.addAttribute("date", LocalDate.now());
 
-        return "index"; // Looks for index.html
+        return "index";
     }
 }

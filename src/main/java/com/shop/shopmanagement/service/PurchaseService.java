@@ -55,7 +55,7 @@ public class PurchaseService {
     }
 
     @Transactional
-    public void paySupplier(Long supplierId, BigDecimal amount) {
+    public void paySupplier(Long supplierId, BigDecimal amount, String paymentType, String remarks) {
         Supplier supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new RuntimeException("Supplier not found"));
 
@@ -63,12 +63,13 @@ public class PurchaseService {
         supplier.setCurrentBalance(supplier.getCurrentBalance().subtract(amount));
         supplierRepository.save(supplier);
 
-        // 2. SAVE HISTORY (New!)
+        // 2. SAVE HISTORY WITH NEW FIELDS
         SupplierPayment pay = new SupplierPayment();
         pay.setSupplier(supplier);
         pay.setAmount(amount);
         pay.setPaymentDate(LocalDateTime.now());
-        pay.setRemarks("Payment Out");
+        pay.setPaymentType(paymentType); // NEW
+        pay.setRemarks(remarks);         // NEW
         supplierPaymentRepository.save(pay);
     }
 
@@ -84,7 +85,7 @@ public class PurchaseService {
                         p.getPurchaseDate(),
                         "Purchase Bill: " + p.getBillNumber(),
                         "CREDIT", // In Supplier accounts, Purchase is Credit (Liability increases)
-                        p.getTotalAmount()
+                        p.getTotalAmount() // Uses 4-arg compatibility constructor
                 ));
             }
         }
@@ -94,9 +95,10 @@ public class PurchaseService {
         for(SupplierPayment sp : payments) {
             ledger.add(new LedgerEntry(
                     sp.getPaymentDate(),
-                    "Paid to Supplier",
+                    "Paid to Supplier [" + sp.getPaymentType() + "]", // Shows Type in Description
                     "DEBIT", // Liability decreases
-                    sp.getAmount()
+                    sp.getAmount(),
+                    sp.getRemarks() // Uses 5-arg constructor
             ));
         }
 

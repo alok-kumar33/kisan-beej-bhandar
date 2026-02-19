@@ -1,54 +1,143 @@
 package com.shop.shopmanagement.controller;
 
+
+
 import com.shop.shopmanagement.entity.Product;
-import com.shop.shopmanagement.service.ProductService;
+
+import com.shop.shopmanagement.repository.ProductRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.stereotype.Controller;
+
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import java.math.BigDecimal;
+
+import org.springframework.web.bind.annotation.*;
+
+
 
 @Controller
+
 public class ProductController {
 
+
+
     @Autowired
-    private ProductService productService;
+
+    private ProductRepository productRepository;
+
+
+
+// 1. LIST PRODUCTS
 
     @GetMapping("/products")
+
     public String listProducts(Model model) {
-        model.addAttribute("products", productService.getAllProducts());
-        model.addAttribute("productForm", new Product());
+
+        model.addAttribute("products", productRepository.findAll());
+
         return "products";
+
     }
 
-    @PostMapping("/products/save")
-    public String saveProduct(Product product,
-                              // QUANTITY INPUTS
-                              @RequestParam("buyingQty") Double buyingQty,
-                              @RequestParam("subItemsPerUnit") Double subItems,
-                              @RequestParam("baseSize") Double baseSize,
 
-                              // COST PRICE
-                              @RequestParam("totalCostPrice") BigDecimal totalCost,
 
-                              // RETAIL PRICE INPUTS (Either/Or)
-                              @RequestParam(value = "retailPricePerPackage", required = false) BigDecimal retailPricePerPackage,
-                              @RequestParam(value = "retailPricePerUnit", required = false) BigDecimal retailPricePerUnit,
+// 2. SHOW ADD FORM
 
-                              // WHOLESALE PRICE INPUTS (Either/Or) -- NEW!
-                              @RequestParam(value = "wholesalePricePerPackage", required = false) BigDecimal wholesalePricePerPackage,
-                              @RequestParam(value = "wholesalePricePerUnit", required = false) BigDecimal wholesalePricePerUnit
-    ) {
+    @GetMapping("/products/new")
 
-        productService.processAndSaveProduct(
-                product, buyingQty, subItems, baseSize,
-                totalCost,
-                retailPricePerPackage, retailPricePerUnit,
-                wholesalePricePerPackage, wholesalePricePerUnit // Passing new inputs
-        );
+    public String showAddProductForm(Model model) {
+
+        model.addAttribute("product", new Product());
+
+        return "product-add";
+
+    }
+
+
+
+// 3. SAVE NEW PRODUCT
+
+    @PostMapping("/products/add")
+
+    public String addProduct(@ModelAttribute Product product) {
+
+        productRepository.save(product);
 
         return "redirect:/products";
+
     }
+
+
+
+// 4. SHOW EDIT FORM
+
+    @GetMapping("/products/edit/{id}")
+
+    public String showEditForm(@PathVariable Long id, Model model) {
+
+        Product product = productRepository.findById(id)
+
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        model.addAttribute("product", product);
+
+        return "product-edit";
+
+    }
+
+
+
+// 5. SAVE EDITS (Compatible with your BigDecimal fields)
+
+    @PostMapping("/products/update")
+
+    public String updateProduct(@ModelAttribute Product product) {
+
+        Product existing = productRepository.findById(product.getId()).get();
+
+
+
+        existing.setName(product.getName());
+
+        existing.setCategory(product.getCategory());
+
+        existing.setTotalStock(product.getTotalStock());
+
+        existing.setUnitType(product.getUnitType());
+
+
+
+// BigDecimal Fields
+
+        existing.setCostPricePerUnit(product.getCostPricePerUnit());
+
+        existing.setRetailPricePerUnit(product.getRetailPricePerUnit());
+
+        existing.setWholesalePricePerUnit(product.getWholesalePricePerUnit());
+
+
+
+// Batch Info Fields
+
+        existing.setSupplierName(product.getSupplierName());
+
+        existing.setSupplierPhone(product.getSupplierPhone());
+
+        existing.setBuyingDate(product.getBuyingDate());
+
+        existing.setExpiryDate(product.getExpiryDate());
+
+        existing.setRemarks(product.getRemarks());
+
+
+
+        productRepository.save(existing);
+
+
+
+        return "redirect:/products";
+
+    }
+
 }

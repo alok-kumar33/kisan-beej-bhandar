@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Market Collectables Report</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-back { background: #34495e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+
+        /* Dashboard Widget */
+        .dashboard-widget { background: #e8f5e9; border: 1px solid #c8e6c9; padding: 25px; border-radius: 8px; text-align: center; }
+        .dashboard-val { font-size: 40px; font-weight: bold; color: #2e7d32; display: block; margin-top: 5px; }
+        .dashboard-label { font-size: 14px; color: #555; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #2c3e50; color: white; padding: 12px; text-align: left; cursor: pointer; user-select: none; }
+        th:hover { background: #1a252f; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
+        .balance-red { color: #c0392b; font-weight: bold; }
+        .sort-icon { font-size: 12px; margin-left: 5px; color: #aaa; }
+
+        /* Export Buttons */
+        .export-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
+        .btn-export { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .btn-print { background: #2980b9; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .btn-export:hover { background: #219150; }
+        .btn-print:hover { background: #2471a3; }
+
+        /* Print Styling (Hides buttons and action columns when printing/saving to PDF) */
+        @media print {
+            body { background: white; padding: 0; }
+            .btn-back, .export-bar, .action-col, th:last-child, td:last-child { display: none !important; }
+            .card { box-shadow: none; border: 1px solid #ddd; padding: 10px; }
+            .dashboard-widget { border: 2px solid #2e7d32; }
+        }
+    </style>
+    <script>
+        // Instant Frontend Sorting Logic
+        function sortTable(n, isNumeric) {
+            var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+            table = document.getElementById("reportTable");
+            switching = true;
+            dir = "asc";
+
+            while (switching) {
+                switching = false;
+                rows = table.rows;
+
+                for (i = 1; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+                    x = rows[i].getElementsByTagName("TD")[n];
+                    y = rows[i + 1].getElementsByTagName("TD")[n];
+
+                    let valX = isNumeric ? parseFloat(x.innerText.replace(/[^0-9.-]+/g,"")) : x.innerHTML.toLowerCase();
+                    let valY = isNumeric ? parseFloat(y.innerText.replace(/[^0-9.-]+/g,"")) : y.innerHTML.toLowerCase();
+
+                    if (dir == "asc") {
+                        if (valX > valY) { shouldSwitch = true; break; }
+                    } else if (dir == "desc") {
+                        if (valX < valY) { shouldSwitch = true; break; }
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount ++;
+                } else {
+                    if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; }
+                }
+            }
+        }
+
+        // Export Table to CSV (Excel)
+        function downloadCSV() {
+            let csv = [];
+            let rows = document.querySelectorAll("table tr");
+
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+
+                // Loop through columns, skipping the last 'Action' column
+                for (let j = 0; j < cols.length - 1; j++) {
+                    // Clean up data: remove ₹ symbol and newlines
+                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, " ").replace(/₹ /g, "");
+                    row.push('"' + data + '"');
+                }
+                csv.push(row.join(","));
+            }
+
+            // Create and trigger download
+            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+            let downloadLink = document.createElement("a");
+            downloadLink.download = "Market_Collectables_Report.csv";
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+        }
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>📊 Market Collectables Report</h2>
+        <a href="/ledger" class="btn-back">← Back to Dashboard</a>
+    </div>
+
+    <div class="card dashboard-widget">
+        <span class="dashboard-label">Total Outstanding in Market</span>
+        <span class="dashboard-val" th:text="'₹ ' + ${totalCollectable}">₹ 0.00</span>
+    </div>
+
+    <div class="card">
+
+        <div class="export-bar">
+            <button class="btn-export" onclick="downloadCSV()">📥 Export to Excel</button>
+            <button class="btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+        </div>
+
+        <h3 style="margin-top: -20px;">Customer Due List</h3>
+        <p style="font-size: 13px; color: #777; margin-top: -10px;">Click on column headers to sort.</p>
+
+        <table id="reportTable">
+            <thead>
+            <tr>
+                <th onclick="sortTable(0, false)">Customer Name <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable(1, false)">Phone <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable(2, false)">Type / Shop <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable(3, true)">Amount Due (₹) <span class="sort-icon">↕</span></th>
+                <th class="action-col">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${debtors}">
+                <td th:text="${c.name}">Name</td>
+                <td th:text="${c.phoneNumber}">Phone</td>
+                <td>
+                    <span th:text="${c.customerType}">Type</span>
+                    <span th:if="${c.shopName != null and !c.shopName.isEmpty()}" th:text="' - ' + ${c.shopName}"></span>
+                </td>
+                <td class="balance-red" th:text="${c.currentBalance}">0.00</td>
+                <td class="action-col">
+                    <a th:href="@{/ledger/view(phone=${c.phoneNumber})}" style="color: #2980b9; font-weight: bold; text-decoration: none;">View Ledger ➔</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p th:if="${debtors.empty}" style="text-align: center; color: #777; margin-top: 20px;">
+            Hooray! No customers owe you money right now.
+        </p>
+    </div>
+</div>
+
+</body>
+</html>

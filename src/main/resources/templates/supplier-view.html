@@ -72,6 +72,16 @@
                 <label>Amount Being Paid</label>
                 <input type="number" step="0.01" name="amount" placeholder="0.00" required>
 
+                <label>Payment Mode</label>
+                <select name="paymentType" required>
+                    <option value="CASH">Cash</option>
+                    <option value="ONLINE">Online (UPI / Bank Transfer)</option>
+                    <option value="CHEQUE">Cheque</option>
+                </select>
+
+                <label>Remarks / Reference</label>
+                <input type="text" name="remarks" placeholder="Optional notes, Ref No...">
+
                 <button type="submit" class="btn-pay">Record Payment</button>
             </form>
         </div>
@@ -91,16 +101,23 @@
             <tbody>
             <tr th:each="entry : ${ledgerEntries}">
                 <td th:text="${#temporals.format(entry.date, 'dd-MMM-yyyy')}">Date</td>
-                <td th:text="${entry.description}">-</td>
 
                 <td>
-                        <span th:if="${entry.type == 'CREDIT'}" style="color: #c0392b; font-weight: bold;"
-                              th:text="'₹ ' + ${entry.amount}"></span>
+                    <span th:text="${entry.description}">-</span>
+                    <br th:if="${entry.remarks != null and !entry.remarks.isEmpty()}"/>
+                    <small style="color: #777;"
+                           th:if="${entry.remarks != null and !entry.remarks.isEmpty()}"
+                           th:text="'Note: ' + ${entry.remarks}"></small>
                 </td>
 
                 <td>
-                        <span th:if="${entry.type == 'DEBIT'}" style="color: #27ae60; font-weight: bold;"
-                              th:text="'₹ ' + ${entry.amount}"></span>
+                    <span th:if="${entry.type == 'CREDIT'}" style="color: #c0392b; font-weight: bold;"
+                          th:text="'₹ ' + ${entry.amount}"></span>
+                </td>
+
+                <td>
+                    <span th:if="${entry.type == 'DEBIT'}" style="color: #27ae60; font-weight: bold;"
+                          th:text="'₹ ' + ${entry.amount}"></span>
                 </td>
             </tr>
             </tbody>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <title>Stock Alerts - Kisan Beej Bhandar</title>
+
+    <style>
+
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 20px; color: #2c3e50; }
+
+        .container { max-width: 1100px; margin: 0 auto; }
+
+
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+
+        .back-btn { text-decoration: none; color: #555; font-weight: bold; padding: 10px 20px; background: white; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+
+
+        /* SECTIONS */
+
+        .section { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 30px; }
+
+        h2 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+
+
+
+        /* TABLES */
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; }
+
+        td { padding: 12px; border-bottom: 1px solid #f9f9f9; }
+
+
+
+        /* BADGES */
+
+        .badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; color: white; }
+
+        .badge-red { background: #e74c3c; }
+
+        .badge-yellow { background: #f1c40f; color: #7f6c00; }
+
+
+
+        .action-link { color: #3498db; font-weight: bold; text-decoration: none; }
+
+        .action-link:hover { text-decoration: underline; }
+
+    </style>
+
+</head>
+
+<body>
+
+
+
+<div class="container">
+
+    <div class="header">
+
+        <h1>⚠️ Stock Alerts & Warnings</h1>
+
+        <a href="/" class="back-btn">← Back to Dashboard</a>
+
+    </div>
+
+
+
+    <div class="section" style="border-top: 5px solid #e74c3c;">
+
+        <h2 style="color: #c0392b;">📉 Low Stock Items (Below 10)</h2>
+
+        <p th:if="${lowStockItems.empty}" style="color: #27ae60;">✅ All stock levels are healthy.</p>
+
+
+
+        <table th:if="${!lowStockItems.empty}">
+
+            <thead>
+
+            <tr>
+
+                <th>Product Name</th>
+
+                <th>Current Stock</th>
+
+                <th>Category</th>
+
+                <th>Action</th>
+
+            </tr>
+
+            </thead>
+
+            <tbody>
+
+            <tr th:each="p : ${lowStockItems}">
+
+                <td style="font-weight: bold;" th:text="${p.name}">Urea</td>
+
+                <td>
+
+                    <span class="badge badge-red" th:text="${p.totalStock} + ' ' + ${p.unitType}">5 Bags</span>
+
+                </td>
+
+                <td th:text="${p.category}">Fertilizer</td>
+
+                <td><a th:href="@{/products/edit/{id}(id=${p.id})}" class="action-link">Restock →</a></td>
+
+            </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+
+    <div class="section" style="border-top: 5px solid #f1c40f;">
+
+        <h2 style="color: #d35400;">⏳ Expiring Soon (Next 30 Days)</h2>
+
+        <p th:if="${expiringItems.empty}" style="color: #27ae60;">✅ No items are expiring soon.</p>
+
+
+
+        <table th:if="${!expiringItems.empty}">
+
+            <thead>
+
+            <tr>
+
+                <th>Product Name</th>
+
+                <th>Expiry Date</th>
+
+                <th>Current Stock</th>
+
+                <th>Supplier</th>
+
+                <th>Action</th>
+
+            </tr>
+
+            </thead>
+
+            <tbody>
+
+            <tr th:each="p : ${expiringItems}">
+
+                <td style="font-weight: bold;" th:text="${p.name}">Pesticide X</td>
+
+                <td style="color: #c0392b; font-weight: bold;" th:text="${p.expiryDate}">2026-03-01</td>
+
+                <td>
+
+                    <span class="badge badge-yellow" th:text="${p.totalStock} + ' ' + ${p.unitType}">10 Bottles</span>
+
+                </td>
+
+                <td th:text="${p.supplierName}">IFFCO</td>
+
+                <td><a th:href="@{/products/edit/{id}(id=${p.id})}" class="action-link">Manage →</a></td>
+
+            </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+
+</body>
+
+</html>

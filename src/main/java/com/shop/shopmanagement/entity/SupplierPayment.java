@@ -26,5 +26,8 @@ public class SupplierPayment extends BaseEntity {
     @Column(nullable = false)
     private LocalDateTime paymentDate;
 
+    @Column(nullable = true)
+    private String paymentType; // ADDED: "CASH", "ONLINE", "CHEQUE"
+
     private String remarks; // e.g. "Paid via NEFT"
 }

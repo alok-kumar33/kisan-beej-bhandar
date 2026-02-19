@@ -33,42 +33,35 @@ public class LedgerService {
     public List<LedgerEntry> getCustomerLedger(Long customerId) {
         List<LedgerEntry> ledger = new ArrayList<>();
 
-        // A. Add Sales (DEBIT - Money Owed to Us)
-        // We need a method in SaleRepo to find by Customer ID.
-        // *Assuming we fetch all sales and filter, or add method to Repo*
-        // Let's stick to Repo method for performance.
-        List<Sale> sales = saleRepository.findByCustomerPhone(
-                customerRepository.findById(customerId).get().getPhoneNumber()
-        );
+        // Fetch Customer to get Phone (Your logic)
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        // A. Add Sales (DEBIT) using your specific repo method
+        List<Sale> sales = saleRepository.findByCustomerPhone(customer.getPhoneNumber());
 
         for (Sale s : sales) {
-            // Only count Credit sales as "Debt"?
-            // Actually, the ledger should show ALL transactions.
-            // But usually, only 'Credit' payment mode increases debt.
-            // However, to show full history, let's show the Sale as DEBIT
-            // If they paid Cash, we can show a matching CREDIT immediately,
-            // but for simplicity, let's focus on the DEBT aspect.
-            // Better Approach: Show Transaction.
-            // If PaymentMode = Credit -> DEBIT Amount.
-
+            // Only adding "Credit" sales to ledger as per your logic
             if ("Credit".equalsIgnoreCase(s.getPaymentMode())) {
                 ledger.add(new LedgerEntry(
                         s.getSaleDate(),
                         "Goods Purchase (Bill #" + s.getId() + ")",
                         "DEBIT",
-                        s.getTotalAmount()
+                        s.getTotalAmount(),
+                        "" // Sales usually don't have remarks, sending empty string
                 ));
             }
         }
 
-        // B. Add Payments (CREDIT - Money Paid by Customer)
+        // B. Add Payments (CREDIT)
         List<Payment> payments = paymentRepository.findByCustomerIdOrderByPaymentDateDesc(customerId);
         for (Payment p : payments) {
             ledger.add(new LedgerEntry(
                     p.getPaymentDate(),
                     "Payment Received (" + p.getPaymentMode() + ")",
                     "CREDIT",
-                    p.getAmount()
+                    p.getAmount(),
+                    p.getRemarks() // <--- PASSING THE REMARKS HERE
             ));
         }
 
@@ -83,19 +76,21 @@ public class LedgerService {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
+        // Update Balance (Your logic)
         customer.setCurrentBalance(customer.getCurrentBalance().subtract(amount));
         customerRepository.save(customer);
 
+        // Save Payment
         Payment payment = new Payment();
         payment.setCustomer(customer);
         payment.setAmount(amount);
         payment.setPaymentDate(LocalDateTime.now());
         payment.setPaymentMode(mode);
-        payment.setRemarks(remarks);
+        payment.setRemarks(remarks); // Saving remarks to DB
         paymentRepository.save(payment);
     }
 
-    // 3. UPDATE PROFILE
+    // 3. UPDATE PROFILE (Keeping your exact fields)
     public void updateCustomerProfile(Long customerId, Customer updatedInfo) {
         Customer dbCustomer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));

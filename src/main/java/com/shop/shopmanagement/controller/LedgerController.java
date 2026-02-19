@@ -2,7 +2,6 @@ package com.shop.shopmanagement.controller;
 
 import com.shop.shopmanagement.entity.Customer;
 import com.shop.shopmanagement.repository.CustomerRepository;
-import com.shop.shopmanagement.repository.PaymentRepository;
 import com.shop.shopmanagement.service.LedgerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -21,14 +20,13 @@ public class LedgerController {
     private CustomerRepository customerRepository;
 
     @Autowired
-    private PaymentRepository paymentRepository;
-
-    @Autowired
     private LedgerService ledgerService;
 
-    // 1. Show Search Page
+    // 1. Show Search Page (UPDATED: Sends Customer List for Auto-Complete)
     @GetMapping("/ledger")
-    public String showLedgerSearch() {
+    public String showLedgerSearch(Model model) {
+        // This list powers the "Type Name" feature
+        model.addAttribute("customers", customerRepository.findAll());
         return "ledger-search";
     }
 
@@ -40,13 +38,12 @@ public class LedgerController {
         if (customerOpt.isPresent()) {
             Customer c = customerOpt.get();
             model.addAttribute("customer", c);
-
-            // NEW: Use the unified ledger service to get Sales + Payments mixed
             model.addAttribute("ledgerEntries", ledgerService.getCustomerLedger(c.getId()));
-
             return "ledger-view";
         } else {
+            // If not found, reload search page with error AND the list again
             model.addAttribute("error", "Customer not found!");
+            model.addAttribute("customers", customerRepository.findAll());
             return "ledger-search";
         }
     }
@@ -57,10 +54,13 @@ public class LedgerController {
                               @RequestParam BigDecimal amount,
                               @RequestParam String mode,
                               @RequestParam String remarks,
-                              @RequestParam String phoneRedirect) {
+                              @RequestParam(required = false) String phoneRedirect) {
 
         ledgerService.collectPayment(customerId, amount, mode, remarks);
-        return "redirect:/ledger/view?phone=" + phoneRedirect;
+
+        // Fetch phone to redirect properly
+        String phone = customerRepository.findById(customerId).get().getPhoneNumber();
+        return "redirect:/ledger/view?phone=" + phone;
     }
 
     // 4. Update Profile Info

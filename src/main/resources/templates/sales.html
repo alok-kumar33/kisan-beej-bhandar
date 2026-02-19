@@ -22,10 +22,16 @@
         .price-toggle { background: #eee; padding: 10px; border-radius: 5px; display: flex; gap: 15px; align-items: center; margin-bottom: 15px; border: 1px solid #ddd; }
         .badge-ws { background: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; display: none;}
 
-        /* NEW: Balance Badge Style */
         .balance-alert { font-size: 12px; font-weight: bold; margin-top: 5px; display: none; }
-        .balance-red { color: #c0392b; } /* Owe us money */
-        .balance-green { color: #27ae60; } /* Advance/Clear */
+        .balance-red { color: #c0392b; }
+        .balance-green { color: #27ae60; }
+
+        /* --- NEW: QR MODAL STYLES --- */
+        .qr-modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
+        .qr-content { background-color: white; margin: 5% auto; padding: 30px; width: 350px; border-radius: 10px; text-align: center; position: relative; }
+        .qr-image { width: 250px; height: 250px; object-fit: contain; border: 2px solid #eee; margin: 15px 0; }
+        .amount-display { font-size: 24px; color: #27ae60; font-weight: bold; margin: 10px 0; }
+        .close-qr { position: absolute; top: 10px; right: 20px; font-size: 30px; cursor: pointer; color: #aaa; }
     </style>
 </head>
 <body>
@@ -45,20 +51,19 @@
         </div>
     </div>
 
-    <label>Select Product</label>
-    <select id="productSelect">
-        <option value="">-- Choose Product --</option>
-        <th:block th:each="p : ${products}">
-            <option th:value="${p.id}"
-                    th:data-name="${p.name}"
-                    th:data-unit="${p.unitType}"
-                    th:data-retail="${p.retailPricePerUnit}"
-                    th:data-wholesale="${p.wholesalePricePerUnit != null ? p.wholesalePricePerUnit : p.retailPricePerUnit}"
-                    th:text="${p.name} + ' (Stock: ' + ${p.totalStock} + ')'">
-                Urea
-            </option>
-        </th:block>
-    </select>
+    <label>Search Product (Type Name)</label>
+    <input list="productsList" id="productInput" placeholder="Type 'C' for Crystal..." onchange="handleProductSelect(this)">
+
+    <datalist id="productsList">
+        <option th:each="p : ${products}"
+                th:value="${p.name}"
+                th:data-id="${p.id}"
+                th:data-unit="${p.unitType}"
+                th:data-retail="${p.retailPricePerUnit}"
+                th:data-wholesale="${p.wholesalePricePerUnit != null ? p.wholesalePricePerUnit : p.retailPricePerUnit}"
+                th:text="'Stock: ' + ${p.totalStock} + ' ' + ${p.unitType}">
+        </option>
+    </datalist>
 
     <label>Quantity <span id="unitLabel" style="font-weight: normal; color: #7f8c8d;"></span></label>
     <input type="number" id="qtyInput" placeholder="0.0" step="0.1">
@@ -107,18 +112,33 @@
         Total: ₹ <span id="grandTotal">0.00</span>
     </div>
 
-    <button class="checkout-btn" onclick="submitSale()">✅ Complete Sale</button>
+    <button class="checkout-btn" onclick="initiateCheckout()">✅ Complete Sale</button>
+</div>
+
+<div id="qrModal" class="qr-modal">
+    <div class="qr-content">
+        <span class="close-qr" onclick="closeQR()">&times;</span>
+        <h2 style="color:#333;">Scan to Pay</h2>
+
+        <img src="/qr.jpeg" class="qr-image" alt="Shop QR Code">
+
+        <div class="amount-display" id="displayAmount">Rs. 0.00</div>
+
+        <p style="color:#777;">Please verify SMS on your phone.</p>
+
+        <button onclick="submitSale()" class="add-btn" style="background:#27ae60;">SMS Verified! Save Bill</button>
+    </div>
 </div>
 
 <script>
     let cart = [];
     let isWholesale = false;
+    let currentSelectedProduct = null;
+    let currentTotal = 0.0; // Added variable to track total for QR
 
-    // --- NEW: AUTO CUSTOMER FETCH ---
+    // --- AUTO CUSTOMER FETCH ---
     document.getElementById('custPhone').addEventListener('input', function() {
         const phone = this.value;
-
-        // Only search if length is reasonable (e.g. 10 digits)
         if (phone.length >= 10) {
             fetch('/customers/search?phone=' + phone)
                 .then(response => {
@@ -126,33 +146,48 @@
                     throw new Error('Not Found');
                 })
                 .then(data => {
-                    // FOUND! Auto-fill details
                     document.getElementById('custName').value = data.name;
-
-                    // Show Old Balance Warning
                     const balElem = document.getElementById('balanceMsg');
                     const balSpan = document.getElementById('oldBal');
-
                     balElem.style.display = 'block';
                     balSpan.innerText = data.currentBalance.toFixed(2);
-
                     if(data.currentBalance > 0) {
                         balElem.className = 'balance-alert balance-red';
-                        balElem.innerHTML = '⚠️ Pendng Udhaar: ₹ ' + data.currentBalance.toFixed(2);
+                        balElem.innerHTML = '⚠️ Pending Udhaar: ₹ ' + data.currentBalance.toFixed(2);
                     } else {
                         balElem.className = 'balance-alert balance-green';
                         balElem.innerHTML = '✅ No Dues (Balance: ₹ ' + data.currentBalance.toFixed(2) + ')';
                     }
                 })
                 .catch(err => {
-                    // NOT FOUND: Clear name so they can type a new one
-                    // Don't clear if user is manually typing, but here it's safer
-                    // Optional: document.getElementById('custName').value = '';
                     document.getElementById('balanceMsg').style.display = 'none';
                 });
         }
     });
-    // --------------------------------
+
+    // --- PRODUCT SEARCH LOGIC ---
+    function handleProductSelect(inputElement) {
+        const val = inputElement.value;
+        const list = document.getElementById('productsList');
+        const options = list.options;
+
+        currentSelectedProduct = null;
+        document.getElementById('unitLabel').innerText = "";
+
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].value === val) {
+                currentSelectedProduct = {
+                    id: options[i].getAttribute('data-id'),
+                    name: val,
+                    unit: options[i].getAttribute('data-unit'),
+                    retail: parseFloat(options[i].getAttribute('data-retail')),
+                    wholesale: parseFloat(options[i].getAttribute('data-wholesale'))
+                };
+                document.getElementById('unitLabel').innerText = "(" + currentSelectedProduct.unit + ")";
+                break;
+            }
+        }
+    }
 
     function updatePriceMode() {
         const radios = document.getElementsByName('priceMode');
@@ -167,36 +202,35 @@
         }
     }
 
-    document.getElementById('productSelect').addEventListener('change', function() {
-        const selected = this.options[this.selectedIndex];
-        const unit = selected.getAttribute('data-unit');
-        document.getElementById('unitLabel').innerText = unit ? '(' + unit + ')' : '';
-    });
-
     function addToCart() {
-        const select = document.getElementById('productSelect');
-        const selectedOption = select.options[select.selectedIndex];
         const qty = parseFloat(document.getElementById('qtyInput').value);
 
-        if (!select.value || !qty || qty <= 0) {
-            alert("Please select a product and valid quantity!");
+        if (!currentSelectedProduct) {
+            alert("Please select a valid product from the list!");
+            return;
+        }
+        if (!qty || qty <= 0) {
+            alert("Please enter a valid quantity!");
             return;
         }
 
-        const retailPrice = parseFloat(selectedOption.getAttribute('data-retail'));
-        const wholesalePrice = parseFloat(selectedOption.getAttribute('data-wholesale'));
-
-        const finalPrice = isWholesale ? wholesalePrice : retailPrice;
-
-        const productId = select.value;
-        const name = selectedOption.getAttribute('data-name');
-        const unit = selectedOption.getAttribute('data-unit');
-
+        const finalPrice = isWholesale ? currentSelectedProduct.wholesale : currentSelectedProduct.retail;
         const lineTotal = finalPrice * qty;
 
-        cart.push({ productId, name, qty, price: finalPrice, unit, lineTotal });
+        cart.push({
+            productId: currentSelectedProduct.id,
+            name: currentSelectedProduct.name,
+            qty: qty,
+            price: finalPrice,
+            unit: currentSelectedProduct.unit,
+            lineTotal: lineTotal
+        });
 
         document.getElementById('qtyInput').value = '';
+        document.getElementById('productInput').value = '';
+        currentSelectedProduct = null;
+        document.getElementById('unitLabel').innerText = '';
+
         renderCart();
     }
 
@@ -204,7 +238,6 @@
         const tbody = document.getElementById('cartTableBody');
         tbody.innerHTML = '';
         let total = 0;
-
         cart.forEach((item, index) => {
             total += item.lineTotal;
             const row = `
@@ -217,7 +250,7 @@
                 </tr>`;
             tbody.innerHTML += row;
         });
-
+        currentTotal = total; // Update global total variable for QR display
         document.getElementById('grandTotal').innerText = total.toFixed(2);
     }
 
@@ -226,6 +259,27 @@
         renderCart();
     }
 
+    // --- NEW: INTERCEPT CHECKOUT ---
+    function initiateCheckout() {
+        if (cart.length === 0) { alert("Cart is empty!"); return; }
+
+        const mode = document.getElementById('payMode').value;
+
+        // If mode is UPI (Online), show Modal First
+        if (mode === 'UPI') {
+            document.getElementById('displayAmount').innerText = "Rs. " + currentTotal.toFixed(2);
+            document.getElementById('qrModal').style.display = 'block';
+        } else {
+            // Otherwise submit immediately
+            submitSale();
+        }
+    }
+
+    function closeQR() {
+        document.getElementById('qrModal').style.display = 'none';
+    }
+
+    // --- YOUR ORIGINAL SUBMIT FUNCTION (UNCHANGED) ---
     function submitSale() {
         if (cart.length === 0) { alert("Cart is empty!"); return; }
 
@@ -242,9 +296,9 @@
             customerPhone: phone,
             paymentMode: mode,
             cartItems: cart.map(item => ({
-                productId: item.productId,
-                quantity: item.qty,
-                price: item.price
+                productId: parseInt(item.productId), // Added parseInt for safety
+                quantity: parseFloat(item.qty),      // Added parseFloat for safety
+                price: parseFloat(item.price)        // Added parseFloat for safety
             }))
         };
 
@@ -253,9 +307,14 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(saleData)
         })
-        .then(response => response.json())
+        .then(response => {
+            if(!response.ok) throw new Error("Server Error");
+            return response.json();
+        })
         .then(saleId => {
-            if(saleId) { window.location.href = '/sale/invoice/' + saleId; }
+            if(saleId) {
+                window.location.href = '/sale/invoice/' + saleId;
+            }
             else { alert("Error processing sale"); }
         })
         .catch(err => alert("Error: " + err));

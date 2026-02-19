@@ -33,17 +33,20 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // 1. ALLOW LOGIN PAGE (This fixes the loop!)
-                        .requestMatchers("/login", "/css/**", "/js/**").permitAll()
+                        // 1. PUBLIC ACCESS (Login & Static Files)
+                        .requestMatchers("/login", "/css/**", "/js/**", "/images/**").permitAll()
 
-                        // 2. ADMIN ONLY
-                        .requestMatchers("/users/**").hasAnyAuthority("ADMIN", "OWNER")
+                        // 2. STRICTLY ADMIN ONLY (User Management) - UPDATED HERE
+                        .requestMatchers("/users/**").hasAuthority("ADMIN")
 
-                        // 3. ADMIN & OWNER
-                        .requestMatchers("/products/**", "/ledger/**").hasAnyAuthority("ADMIN", "OWNER")
+                        // 3. ADMIN & OWNER ONLY (Ledger & Reports)
+                        .requestMatchers("/ledger/**", "/reports/**").hasAnyAuthority("ADMIN", "OWNER")
 
-                        // 4. LOGGED IN USERS (Staff included)
-                        .requestMatchers("/sales/**", "/").authenticated()
+                        // 4. STAFF, ADMIN, OWNER (Inventory, Expenses, Returns)
+                        .requestMatchers("/products/**", "/expenses/**", "/returns/**").hasAnyAuthority("ADMIN", "OWNER", "STAFF")
+
+                        // 5. GENERAL ACCESS (Sales, Dashboard, Searching)
+                        .requestMatchers("/sales/**", "/invoice/**", "/").authenticated()
 
                         .anyRequest().authenticated()
                 )

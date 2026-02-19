@@ -4,7 +4,7 @@
     <title>Customer Ledger</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
 
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h3 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; color: #2c3e50; }
@@ -22,15 +22,52 @@
         /* TABLE */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { background: #34495e; color: white; padding: 10px; text-align: left; }
-        td { padding: 10px; border-bottom: 1px solid #eee; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
+
+        .remarks-text { color: #666; font-style: italic; font-size: 13px; }
 
         .details-form { display: none; margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px; }
+
+        /* --- NEW: QR MODAL STYLES --- */
+        .qr-modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
+        .qr-content { background-color: white; margin: 5% auto; padding: 30px; width: 350px; border-radius: 10px; text-align: center; position: relative; }
+        .qr-image { width: 250px; height: 250px; object-fit: contain; border: 2px solid #eee; margin: 15px 0; }
+        .amount-display { font-size: 24px; color: #27ae60; font-weight: bold; margin: 10px 0; }
+        .close-qr { position: absolute; top: 10px; right: 20px; font-size: 30px; cursor: pointer; color: #aaa; }
     </style>
     <script>
         function toggleDetails() {
             var x = document.getElementById("editProfile");
             if (x.style.display === "none") { x.style.display = "block"; }
             else { x.style.display = "none"; }
+        }
+
+        // --- NEW: QR POPUP LOGIC ---
+        function initiatePayment() {
+            var amount = document.getElementById('amountInput').value;
+            var mode = document.getElementById('payMode').value;
+
+            if (!amount || amount <= 0) {
+                alert("Please enter a valid amount first!");
+                return;
+            }
+
+            if (mode === 'UPI') {
+                // Show QR Modal
+                document.getElementById('displayAmount').innerText = "Rs. " + parseFloat(amount).toFixed(2);
+                document.getElementById('qrModal').style.display = 'block';
+            } else {
+                // If Cash or Cheque, submit immediately
+                submitPaymentForm();
+            }
+        }
+
+        function closeQR() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        function submitPaymentForm() {
+            document.getElementById('paymentForm').submit();
         }
     </script>
 </head>
@@ -49,24 +86,24 @@
 
         <div class="card">
             <h3>💰 Collect Payment</h3>
-            <form action="/ledger/pay" method="post">
+            <form action="/ledger/pay" method="post" id="paymentForm">
                 <input type="hidden" name="customerId" th:value="${customer.id}">
                 <input type="hidden" name="phoneRedirect" th:value="${customer.phoneNumber}">
 
                 <label>Amount Received</label>
-                <input type="number" step="0.01" name="amount" placeholder="e.g. 5000" required>
+                <input type="number" step="0.01" name="amount" id="amountInput" placeholder="e.g. 5000" required>
 
                 <label>Mode</label>
-                <select name="mode">
+                <select name="mode" id="payMode">
                     <option value="Cash">Cash</option>
                     <option value="UPI">UPI / Online</option>
                     <option value="Cheque">Cheque</option>
                 </select>
 
                 <label>Remarks</label>
-                <input type="text" name="remarks" placeholder="Optional note">
+                <input type="text" name="remarks" placeholder="Optional note (e.g. Cleared Jan Bill)">
 
-                <button type="submit" class="btn-pay">Receive Payment</button>
+                <button type="button" class="btn-pay" onclick="initiatePayment()">Receive Payment</button>
             </form>
         </div>
 
@@ -117,6 +154,7 @@
             <tr>
                 <th>Date</th>
                 <th>Particulars</th>
+                <th>Remarks</th>
                 <th style="color: #c0392b;">Debit (Taken)</th>
                 <th style="color: #27ae60;">Credit (Paid)</th>
             </tr>
@@ -126,14 +164,16 @@
                 <td th:text="${#temporals.format(entry.date, 'dd-MMM-yy HH:mm')}">Date</td>
                 <td th:text="${entry.description}">Desc</td>
 
+                <td class="remarks-text" th:text="${entry.remarks}"></td>
+
                 <td>
-                        <span th:if="${entry.type == 'DEBIT'}" style="color: #c0392b; font-weight: bold;"
-                              th:text="'₹ ' + ${entry.amount}"></span>
+                    <span th:if="${entry.type == 'DEBIT'}" style="color: #c0392b; font-weight: bold;"
+                          th:text="'₹ ' + ${entry.amount}"></span>
                 </td>
 
                 <td>
-                        <span th:if="${entry.type == 'CREDIT'}" style="color: #27ae60; font-weight: bold;"
-                              th:text="'₹ ' + ${entry.amount}"></span>
+                    <span th:if="${entry.type == 'CREDIT'}" style="color: #27ae60; font-weight: bold;"
+                          th:text="'₹ ' + ${entry.amount}"></span>
                 </td>
             </tr>
             </tbody>
@@ -144,6 +184,21 @@
         </p>
     </div>
 
+</div>
+
+<div id="qrModal" class="qr-modal">
+    <div class="qr-content">
+        <span class="close-qr" onclick="closeQR()">&times;</span>
+        <h2 style="color:#333;">Scan to Pay</h2>
+
+        <img src="/qr.jpeg" class="qr-image" alt="Shop QR Code">
+
+        <div class="amount-display" id="displayAmount">Rs. 0.00</div>
+
+        <p style="color:#777;">Please verify SMS on your phone.</p>
+
+        <button onclick="submitPaymentForm()" class="btn-pay" style="margin-top: 10px;">SMS Verified! Save Payment</button>
+    </div>
 </div>
 
 </body>

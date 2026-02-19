@@ -37,54 +37,61 @@ public class ProductService {
         incoming.setCostPricePerUnit(costPerUnit);
 
         // --- 3. RETAIL PRICE LOGIC ---
-        Double unitsPerPackage = subItems * baseSize; // e.g. 50kg in 1 Sack
+        Double unitsPerPackage = subItems * baseSize;
 
         if (retailPricePerPackage != null) {
-            // User entered Price Per Package (e.g. 300 per Sack)
-            // 300 / 50 = 6 Rs/kg
             BigDecimal price = retailPricePerPackage.divide(BigDecimal.valueOf(unitsPerPackage), 4, RoundingMode.HALF_UP);
             incoming.setRetailPricePerUnit(price);
         } else if (retailPricePerUnit != null) {
-            // User entered Price Per Unit (e.g. 6 Rs/kg)
             incoming.setRetailPricePerUnit(retailPricePerUnit);
         }
 
-        // --- 4. WHOLESALE PRICE LOGIC (NEW) ---
+        // --- 4. WHOLESALE PRICE LOGIC ---
         if (wholesalePricePerPackage != null) {
-            // User entered Wholesale Per Package (e.g. 250 per Sack)
-            // 250 / 50 = 5 Rs/kg
             BigDecimal price = wholesalePricePerPackage.divide(BigDecimal.valueOf(unitsPerPackage), 4, RoundingMode.HALF_UP);
             incoming.setWholesalePricePerUnit(price);
         } else if (wholesalePricePerUnit != null) {
-            // User entered Wholesale Per Unit (e.g. 5 Rs/kg)
             incoming.setWholesalePricePerUnit(wholesalePricePerUnit);
         } else {
-            // If neither is entered, default to Retail Price (No discount)
+            // Default to Retail if empty
             incoming.setWholesalePricePerUnit(incoming.getRetailPricePerUnit());
         }
 
-        // --- 5. SAVE OR MERGE ---
+        // --- 5. SAVE OR MERGE LOGIC ---
+        // We look for existing products with the SAME Name and SAME Unit Type
         List<Product> existingProducts = productRepository.findByNameAndUnitType(
                 incoming.getName(),
                 incoming.getUnitType()
         );
 
         boolean merged = false;
+
+        // Loop through existing batches to see if we can just add stock
         for (Product p : existingProducts) {
-            // We check if Retail Price matches to merge batches
+
+            // MERGE CONDITION: If the Retail Price matches, we treat it as the same "Batch"
+            // (You can change this logic if you want to merge regardless of price)
             if (p.getRetailPricePerUnit().compareTo(incoming.getRetailPricePerUnit()) == 0) {
+
+                // 1. Update Stock
                 p.setTotalStock(p.getTotalStock() + totalBaseUnits);
 
-                // Update metadata
+                // 2. Update Metadata (Overwrite old info with latest batch info)
                 p.setSupplierName(incoming.getSupplierName());
                 p.setSupplierPhone(incoming.getSupplierPhone());
                 p.setBuyingDate(incoming.getBuyingDate());
                 p.setExpiryDate(incoming.getExpiryDate());
 
-                // Update Wholesale price to latest batch value
+                // *** NEW: Update Remarks ***
+                p.setRemarks(incoming.getRemarks());
+
+                // 3. Update Wholesale Price (Use latest)
                 if(incoming.getWholesalePricePerUnit() != null) {
                     p.setWholesalePricePerUnit(incoming.getWholesalePricePerUnit());
                 }
+
+                // 4. Update Cost Price (Use Weighted Average or Latest? Here we use Latest)
+                p.setCostPricePerUnit(incoming.getCostPricePerUnit());
 
                 productRepository.save(p);
                 merged = true;
@@ -92,6 +99,7 @@ public class ProductService {
             }
         }
 
+        // If no matching batch found, save as a NEW row
         if (!merged) {
             productRepository.save(incoming);
         }

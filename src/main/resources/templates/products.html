@@ -1,170 +1,133 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Inventory Manager</title>
+    <title>Product Inventory</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { color: #1a1a1a; border-left: 5px solid #27ae60; padding-left: 15px; margin-bottom: 25px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 20px; }
+        .container { max-width: 98%; margin: 0 auto; } /* Use full screen width */
 
-        /* BOXES */
-        .calc-box { background-color: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #c8e6c9; }
-        .price-box { background-color: #fff3e0; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffe0b2; }
-        .wholesale-box { background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #bbdefb; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .search-box { padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn-add { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-decoration: none; }
 
-        .section-title { font-weight: bold; display: block; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.9em; }
-        .green-text { color: #2e7d32; }
-        .orange-text { color: #e65100; }
-        .blue-text { color: #1565c0; }
+        /* SCROLLABLE TABLE CONTAINER */
+        .table-wrapper {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow-x: auto; /* Enables Horizontal Scroll */
+        }
 
-        /* FORM LAYOUT */
-        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .form-row-2 { grid-template-columns: 1fr 1fr; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
 
-        label { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 8px; display: block; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        /* Sticky Header */
+        thead tr { background: #34495e; color: white; }
+        th { padding: 12px 15px; text-align: left; white-space: nowrap; font-size: 14px; }
 
-        .btn { width: 100%; padding: 14px; background: #27ae60; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 15px; font-weight: bold; }
-        .btn:hover { background: #219150; }
+        /* Table Cells */
+        td { padding: 10px 15px; border-bottom: 1px solid #eee; white-space: nowrap; font-size: 14px; color: #333; }
 
-        /* TABLE */
-        table { width: 100%; margin-top: 30px; border-collapse: collapse; background: white; }
-        th { background: #34495e; color: white; padding: 12px; text-align: left; font-size: 14px; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; }
+        /* Zebra Striping */
+        tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        tbody tr:hover { background-color: #f1f1f1; }
 
-        .price-tag { background: #fff3e0; color: #e65100; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; margin-right: 5px; }
-        .ws-tag { background: #e3f2fd; color: #1565c0; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+        /* Specific Column Colors */
+        .col-stock { font-weight: bold; color: #2c3e50; }
+        .col-cost { color: #7f8c8d; }
+        .col-retail { color: #27ae60; font-weight: bold; }
+        .col-wholesale { color: #2980b9; font-weight: bold; }
+        .col-expired { color: white; background-color: #e74c3c; padding: 4px 8px; border-radius: 4px; }
+        .col-action { text-align: center; }
+
     </style>
+    <script>
+        function filterTable() {
+            var input, filter, table, tr, td, i, txtValue;
+            input = document.getElementById("searchInput");
+            filter = input.value.toUpperCase();
+            table = document.getElementById("productTable");
+            tr = table.getElementsByTagName("tr");
+            for (i = 1; i < tr.length; i++) {
+                td = tr[i].getElementsByTagName("td")[0];
+                if (td) {
+                    txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) { tr[i].style.display = ""; }
+                    else { tr[i].style.display = "none"; }
+                }
+            }
+        }
+    </script>
 </head>
 <body>
 
 <div style="background: #2c3e50; padding: 10px 20px; margin-bottom: 20px;">
-    <a href="/" style="color: white; text-decoration: none; font-weight: bold;">🏠 Home Dashboard</a>
+    <a href="/" style="color: white; text-decoration: none; font-weight: bold;">🏠 Home</a>
 </div>
 
 <div class="container">
-    <h2>📦 Add Stock & Pricing</h2>
+    <div class="header">
+        <h2>📦 Product Inventory Master List</h2>
+        <input type="text" id="searchInput" onkeyup="filterTable()" class="search-box" placeholder="🔍 Search Product Name...">
+        <a href="/products/new" class="btn-add">+ Add Product</a>
+    </div>
 
-    <form th:action="@{/products/save}" th:object="${productForm}" method="post">
+    <div class="table-wrapper">
+        <table id="productTable">
+            <thead>
+            <tr>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Current Stock</th>
+                <th>Unit</th>
+                <th>Cost Price (Buy)</th>
+                <th>Retail Price (Sell)</th>
+                <th>Wholesale Price</th>
+                <th>Supplier Name</th>
+                <th>Supplier Phone</th>
+                <th>Buying Date</th>
+                <th>Expiry Date</th>
+                <th>Remarks</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${products}">
+                <td style="font-weight: bold;" th:text="${p.name}">Urea</td>
+                <td th:text="${p.category}">Fertilizer</td>
 
-        <div class="form-grid">
-            <div>
-                <label>Product Name</label>
-                <input type="text" th:field="*{name}" placeholder="e.g. Urea" required>
-            </div>
-            <div>
-                <label>Category</label>
-                <select th:field="*{category}">
-                    <option value="Fertilizer">Fertilizer</option>
-                    <option value="Pesticide">Pesticide</option>
-                    <option value="Seeds">Seeds</option>
-                    <option value="Equipment">Equipment</option>
-                </select>
-            </div>
-            <div>
-                <label>Base Selling Unit</label>
-                <select th:field="*{unitType}">
-                    <option value="kg">Kilogram (kg)</option>
-                    <option value="L">Liter (L)</option>
-                    <option value="g">Gram (g)</option>
-                    <option value="ml">Milliliter (ml)</option>
-                    <option value="pcs">Piece (pcs)</option>
-                </select>
-            </div>
-        </div>
+                <td class="col-stock" th:text="${p.totalStock}">50</td>
+                <td th:text="${p.unitType}">kg</td>
 
-        <br>
+                <td class="col-cost">₹ <span th:text="${p.costPricePerUnit}">400</span></td>
+                <td class="col-retail">₹ <span th:text="${p.retailPricePerUnit}">500</span></td>
+                <td class="col-wholesale">
+                    <span th:if="${p.wholesalePricePerUnit != null}">₹ <span th:text="${p.wholesalePricePerUnit}">450</span></span>
+                    <span th:if="${p.wholesalePricePerUnit == null}">-</span>
+                </td>
 
-        <div class="calc-box">
-            <span class="section-title green-text">📊 Step 1: Stock Quantity</span>
-            <div class="form-grid">
-                <div>
-                    <label>Buying Quantity</label>
-                    <input type="number" step="0.5" name="buyingQty" placeholder="e.g. 10 (Sacks/Boxes)" required>
-                </div>
-                <div>
-                    <label>Sub-Packets per Unit</label>
-                    <input type="number" step="1" name="subItemsPerUnit" placeholder="e.g. 1 (if loose) or 10" required>
-                </div>
-                <div>
-                    <label>Weight/Size per Item</label>
-                    <input type="number" step="0.01" name="baseSize" placeholder="e.g. 50 (if 50kg)" required>
-                </div>
-            </div>
-        </div>
+                <td th:text="${p.supplierName != null ? p.supplierName : '-'}">-</td>
+                <td th:text="${p.supplierPhone != null ? p.supplierPhone : '-'}">-</td>
 
-        <div class="price-box">
-            <span class="section-title orange-text">💰 Step 2: RETAIL Pricing</span>
+                <td th:text="${p.buyingDate != null ? #temporals.format(p.buyingDate, 'dd-MM-yyyy') : '-'}">-</td>
 
-            <div class="form-grid">
-                <div style="grid-column: span 3;">
-                    <label>Total Buying Cost (Total Bill Amount)</label>
-                    <input type="number" step="0.01" name="totalCostPrice" placeholder="What you paid for all stock" required>
-                </div>
-            </div>
-            <div style="margin: 15px 0; border-top: 1px dashed #ccc;"></div>
-            <div class="form-grid form-row-2">
-                <div>
-                    <label>Option A: Retail Price (Per Package)</label>
-                    <input type="number" step="0.01" name="retailPricePerPackage" placeholder="e.g. 300 (Per Sack)">
-                </div>
-                <div style="text-align:center; font-weight:bold; color:#777; align-self:center;">OR</div>
-                <div>
-                    <label>Option B: Retail Price (Per Base Unit)</label>
-                    <input type="number" step="0.01" name="retailPricePerUnit" placeholder="e.g. 6 (Per kg)">
-                </div>
-            </div>
-        </div>
+                <td>
+                        <span th:if="${p.expiryDate != null}"
+                              th:text="${#temporals.format(p.expiryDate, 'dd-MM-yyyy')}"
+                              th:class="${p.expiryDate.isBefore(T(java.time.LocalDate).now()) ? 'col-expired' : ''}">
+                        </span>
+                    <span th:if="${p.expiryDate == null}">-</span>
+                </td>
 
-        <div class="wholesale-box">
-            <span class="section-title blue-text">🏭 Step 3: WHOLESALE Pricing (Optional)</span>
-            <div class="form-grid form-row-2">
-                <div>
-                    <label>Option A: Wholesale (Per Package)</label>
-                    <input type="number" step="0.01" name="wholesalePricePerPackage" placeholder="e.g. 250 (Per Sack)">
-                </div>
-                <div style="text-align:center; font-weight:bold; color:#777; align-self:center;">OR</div>
-                <div>
-                    <label>Option B: Wholesale (Per Base Unit)</label>
-                    <input type="number" step="0.01" name="wholesalePricePerUnit" placeholder="e.g. 5 (Per kg)">
-                </div>
-            </div>
-        </div>
+                <td th:text="${p.remarks}"></td>
 
-        <div class="form-grid">
-            <div><label>Supplier Name</label><input type="text" th:field="*{supplierName}"></div>
-            <div><label>Buying Date</label><input type="date" th:field="*{buyingDate}" required></div>
-            <div><label>Expiry Date</label><input type="date" th:field="*{expiryDate}"></div>
-        </div>
-
-        <button type="submit" class="btn">Save Product</button>
-    </form>
-
-    <h3>Current Inventory</h3>
-    <table>
-        <thead>
-        <tr>
-            <th>Name</th>
-            <th>Total Stock</th>
-            <th>Prices (Per Unit)</th>
-            <th>Supplier</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="p : ${products}">
-            <td th:text="${p.name}">Name</td>
-            <td>
-                <span style="font-weight:bold;" th:text="${p.totalStock}">0</span>
-                <span th:text="${p.unitType}">kg</span>
-            </td>
-            <td>
-                <div class="price-tag" th:text="'Retail: ₹ ' + ${p.retailPricePerUnit}">R: 0.00</div>
-                <div class="ws-tag" th:text="'Wholesale: ₹ ' + ${p.wholesalePricePerUnit}">W: 0.00</div>
-            </td>
-            <td th:text="${p.supplierName}">-</td>
-        </tr>
-        </tbody>
-    </table>
+                <td class="col-action">
+                    <a th:href="@{/products/edit/{id}(id=${p.id})}" style="text-decoration: none; font-size: 18px;" title="Edit Product">✏️</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 </body>

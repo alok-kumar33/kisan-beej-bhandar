@@ -4,6 +4,7 @@ import com.shop.shopmanagement.dto.SaleRequest;
 import com.shop.shopmanagement.entity.Product;
 import com.shop.shopmanagement.entity.Sale;
 import com.shop.shopmanagement.entity.SaleItem;
+import com.shop.shopmanagement.repository.SaleRepository; // Added for search
 import com.shop.shopmanagement.service.ProductService;
 import com.shop.shopmanagement.service.SaleService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam; // Added for search parameter
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal; // Security Import
@@ -26,6 +28,9 @@ public class SaleController {
 
     @Autowired
     private SaleService saleService;
+
+    @Autowired
+    private SaleRepository saleRepository; // Injected for checking if a bill exists
 
     // 1. Show the "New Sale" Page
     @GetMapping("/sales/new")
@@ -68,5 +73,28 @@ public class SaleController {
 
         // Return the Sale ID so the frontend can redirect to the Invoice
         return savedSale.getId();
+    }
+
+    // ==========================================
+    // NEW: INVOICE SEARCH MODULE
+    // ==========================================
+
+    // 3. Shows the Search Page
+    @GetMapping("/invoice/search")
+    public String searchInvoicePage() {
+        return "invoice-search";
+    }
+
+    // 4. Processes the Search
+    @PostMapping("/invoice/find")
+    public String findInvoice(@RequestParam("billId") Long billId, Model model) {
+        if (saleRepository.existsById(billId)) {
+            // If found, redirect directly to the invoice page
+            return "redirect:/sale/invoice/" + billId;
+        } else {
+            // If not found, show an error message
+            model.addAttribute("error", "Bill Number " + billId + " not found in the system!");
+            return "invoice-search";
+        }
     }
 }

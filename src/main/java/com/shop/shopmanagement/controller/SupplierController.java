@@ -65,12 +65,14 @@ public class SupplierController {
         return "redirect:/suppliers/" + supplierId;
     }
 
-    // 5. Pay Supplier (Clear Debt)
+    // 5. Pay Supplier (Clear Debt) - UPDATED
     @PostMapping("/suppliers/pay")
     public String paySupplier(@RequestParam Long supplierId,
-                              @RequestParam BigDecimal amount) {
+                              @RequestParam BigDecimal amount,
+                              @RequestParam String paymentType,
+                              @RequestParam(required = false) String remarks) {
 
-        purchaseService.paySupplier(supplierId, amount);
+        purchaseService.paySupplier(supplierId, amount, paymentType, remarks);
         return "redirect:/suppliers/" + supplierId;
     }
 }

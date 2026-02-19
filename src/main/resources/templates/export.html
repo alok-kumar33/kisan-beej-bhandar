@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Data Export - For Auditor</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 80vh; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 400px; text-align: center; border-top: 5px solid #27ae60; }
+
+        h2 { color: #2c3e50; margin-top: 0; }
+        p { color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
+
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input[type="date"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+
+        .btn-download { display: block; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 10px; text-decoration: none; font-size: 15px; }
+
+        .btn-green { background: #27ae60; color: white; }
+        .btn-green:hover { background: #219150; }
+
+        .btn-red { background: #e74c3c; color: white; }
+        .btn-red:hover { background: #c0392b; }
+
+        .btn-blue { background: #3498db; color: white; }
+        .btn-blue:hover { background: #2980b9; }
+
+        .back-link { display: inline-block; margin-top: 15px; color: #7f8c8d; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>📂 Data Export</h2>
+    <p>Download Excel-ready CSV files for auditing.</p>
+
+    <div class="form-group">
+        <label>Start Date:</label>
+        <input type="date" id="startDate" required>
+    </div>
+    <div class="form-group">
+        <label>End Date:</label>
+        <input type="date" id="endDate" required>
+    </div>
+
+    <button onclick="downloadReport('/export/sales')" class="btn-download btn-green">
+        ⬇️ Download Sales Register
+    </button>
+
+    <button onclick="downloadReport('/export/expenses')" class="btn-download btn-red">
+        ⬇️ Download Expense Report
+    </button>
+
+    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+    <a href="/export/stock" class="btn-download btn-blue">
+        ⬇️ Download Current Stock
+    </a>
+
+    <a href="/" class="back-link">← Back to Dashboard</a>
+</div>
+
+<script>
+    // Sets default dates to Current Month
+    document.addEventListener("DOMContentLoaded", function() {
+        var date = new Date();
+        var firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        var lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+        document.getElementById('startDate').valueAsDate = firstDay;
+        document.getElementById('endDate').valueAsDate = lastDay;
+    });
+
+    function downloadReport(url) {
+        var start = document.getElementById('startDate').value;
+        var end = document.getElementById('endDate').value;
+        if(!start || !end) {
+            alert("Please select both dates.");
+            return;
+        }
+        window.location.href = url + "?start=" + start + "&end=" + end;
+    }
+</script>
+
+</body>
+</html>

@@ -4,6 +4,8 @@ import com.shop.shopmanagement.dto.DayBookEntry;
 import com.shop.shopmanagement.dto.ItemReportEntry;
 import com.shop.shopmanagement.entity.*;
 import com.shop.shopmanagement.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,8 +34,13 @@ public class ReportService {
     @Autowired
     private SupplierPaymentRepository supplierPaymentRepository;
 
-    @Autowired
-    private SaleItemRepository saleItemRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    // --- MISSING METHOD RESTORED ---
+    public List<Product> getLowStockItems() {
+        return productRepository.findByTotalStockLessThan(10.0);
+    }
 
     // --- 1. MAIN DASHBOARD REPORT ---
     public Map<String, Object> getReport(LocalDate startDate, LocalDate endDate) {
@@ -43,7 +50,7 @@ public class ReportService {
         List<Sale> sales = saleRepository.findBySaleDateBetween(start, end);
 
         BigDecimal totalRevenue = BigDecimal.ZERO;
-        BigDecimal totalCOGS = BigDecimal.ZERO; // Cost of Goods Sold
+        BigDecimal totalCOGS = BigDecimal.ZERO;
         BigDecimal totalCash = BigDecimal.ZERO;
         BigDecimal totalCredit = BigDecimal.ZERO;
         BigDecimal totalUPI = BigDecimal.ZERO;
@@ -60,7 +67,6 @@ public class ReportService {
             }
 
             for (SaleItem item : sale.getItems()) {
-                // FIXED: Matching your Product.java field names
                 BigDecimal costPrice = item.getProduct().getCostPricePerUnit() != null ?
                         item.getProduct().getCostPricePerUnit() : BigDecimal.ZERO;
 
@@ -79,7 +85,7 @@ public class ReportService {
 
         BigDecimal netProfit = grossProfit.subtract(totalExpenses);
 
-        // Graph Data Logic
+        // Chart Data
         Map<LocalDate, BigDecimal> dailyTotals = new HashMap<>();
         LocalDate current = startDate;
         while (!current.isAfter(endDate)) {
@@ -117,18 +123,13 @@ public class ReportService {
         return report;
     }
 
-    public List<Product> getLowStockItems() {
-        return productRepository.findByTotalStockLessThan(50.0);
-    }
-
-    // --- 2. DAY BOOK (MASTER LOG) ---
+    // --- 2. DAY BOOK ---
     public List<DayBookEntry> getDayBook(LocalDate date) {
         LocalDateTime start = date.atStartOfDay();
         LocalDateTime end = date.atTime(LocalTime.MAX);
 
         List<DayBookEntry> book = new ArrayList<>();
 
-        // A. Sales
         List<Sale> sales = saleRepository.findBySaleDateBetween(start, end);
         for(Sale s : sales) {
             BigDecimal amtIn = "Credit".equalsIgnoreCase(s.getPaymentMode()) ? BigDecimal.ZERO : s.getTotalAmount();
@@ -137,7 +138,6 @@ public class ReportService {
                     amtIn, BigDecimal.ZERO, s.getPaymentMode()));
         }
 
-        // B. Expenses
         List<Expense> expenses = expenseRepository.findByDateBetweenOrderByDateDesc(start, end);
         for(Expense e : expenses) {
             book.add(new DayBookEntry(e.getDate(), "EXPENSE",
@@ -145,7 +145,6 @@ public class ReportService {
                     BigDecimal.ZERO, e.getAmount(), "Cash"));
         }
 
-        // C. Customer Payments
         List<Payment> received = paymentRepository.findByPaymentDateBetween(start, end);
         for(Payment p : received) {
             book.add(new DayBookEntry(p.getPaymentDate(), "RECEIPT",
@@ -153,7 +152,6 @@ public class ReportService {
                     p.getAmount(), BigDecimal.ZERO, p.getPaymentMode()));
         }
 
-        // D. Supplier Payments
         List<SupplierPayment> paid = supplierPaymentRepository.findByPaymentDateBetween(start, end);
         for(SupplierPayment sp : paid) {
             book.add(new DayBookEntry(sp.getPaymentDate(), "PAYMENT",
@@ -165,19 +163,35 @@ public class ReportService {
         return book;
     }
 
-    // --- 3. ITEM PERFORMANCE REPORT ---
+    // --- 3. ITEM PERFORMANCE (UPDATED) ---
     public List<ItemReportEntry> getItemReport(LocalDate start, LocalDate end) {
-        return saleItemRepository.getItemPerformance(start.atStartOfDay(), end.atTime(LocalTime.MAX));
+        // Updated Query to fetch UnitType
+        String hql = "SELECT new com.shop.shopmanagement.dto.ItemReportEntry(" +
+                "   p.name, " +
+                "   SUM(si.quantitySold), " +
+                "   SUM(si.quantitySold * si.pricePerUnit), " +
+                "   p.unitType" +
+                ") " +
+                "FROM SaleItem si " +
+                "JOIN si.sale s " +
+                "JOIN si.product p " +
+                "WHERE s.saleDate BETWEEN :start AND :end " +
+                "GROUP BY p.name, p.unitType " +
+                "ORDER BY SUM(si.quantitySold * si.pricePerUnit) DESC";
+
+        return entityManager.createQuery(hql, ItemReportEntry.class)
+                .setParameter("start", start.atStartOfDay())
+                .setParameter("end", end.atTime(23, 59, 59))
+                .getResultList();
     }
 
-    // --- 4. STOCK VALUE REPORT ---
+    // --- 4. STOCK SUMMARY ---
     public Map<String, Object> getStockSummary() {
         List<Product> products = productRepository.findAll();
         BigDecimal totalStockValue = BigDecimal.ZERO;
         BigDecimal totalPotentialRevenue = BigDecimal.ZERO;
 
         for(Product p : products) {
-            // FIXED: Using correct getters from your Product.java
             BigDecimal cost = p.getCostPricePerUnit() != null ? p.getCostPricePerUnit() : BigDecimal.ZERO;
             BigDecimal price = p.getRetailPricePerUnit() != null ? p.getRetailPricePerUnit() : BigDecimal.ZERO;
 

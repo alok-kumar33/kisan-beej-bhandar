@@ -20,13 +20,15 @@
         .tab { background: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; color: #2c3e50; font-weight: bold; border: 1px solid #ddd; }
         .tab:hover { background: #eee; }
         .active-tab { background: #2c3e50; color: white; border-color: #2c3e50; }
+
+        .nav-home { background: #2c3e50; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div style="background: #2c3e50; padding: 10px 20px; margin-bottom: 20px; border-radius: 5px;">
-        <a href="/" style="color: white; text-decoration: none; font-weight: bold;">🏠 Home</a>
+    <div style="margin-bottom: 20px;">
+        <a href="/" class="nav-home">🏠 Home</a>
     </div>
 
     <div class="nav">
@@ -53,21 +55,25 @@
             <th>Product Name</th>
             <th>Quantity Sold</th>
             <th>Revenue Generated</th>
-            <th>Performance</th>
+            <th style="width: 25%;">Volume Share</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="item : ${items}">
-            <td style="font-weight: bold;" th:text="${item.productName}">Urea</td>
-            <td>
-                <span th:text="${item.quantitySold}">100</span> units
+            <td style="font-weight: bold; color: #2c3e50;" th:text="${item.productName}">Urea</td>
+
+            <td style="font-size: 15px;">
+                <span style="font-weight: bold;" th:text="${item.quantitySold}">345</span>
+                <span style="color: #7f8c8d; font-size: 13px;" th:text="${item.unitType}">kg</span>
             </td>
+
             <td style="color: #27ae60; font-weight: bold;">
-                ₹ <span th:text="${item.totalRevenue}">5000</span>
+                ₹ <span th:text="${#numbers.formatDecimal(item.totalRevenue, 1, 2)}">5000.00</span>
             </td>
-            <td style="width: 30%;">
+
+            <td>
                 <div class="bar-container">
-                    <div class="bar-fill" style="width: 50%;"></div>
+                    <div class="bar-fill" style="width: 60%;"></div>
                 </div>
             </td>
         </tr>
