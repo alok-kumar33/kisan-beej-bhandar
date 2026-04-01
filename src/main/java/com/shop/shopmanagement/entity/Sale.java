@@ -28,7 +28,11 @@ public class Sale extends BaseEntity {
 
     private String createdBy; // Stores "Ramesh (Staff)" or "Owner"
 
-    // TOTAL BILL AMOUNT
+    // DISCOUNT AMOUNT (New Field!)
+    @Column(precision = 10, scale = 2)
+    private BigDecimal discount = BigDecimal.ZERO;
+
+    // TOTAL BILL AMOUNT (This will now be: Sum of Items - Discount)
     @Column(nullable = false)
     private BigDecimal totalAmount;
 
@@ -36,7 +40,6 @@ public class Sale extends BaseEntity {
     private String paymentMode;
 
     // RELATIONSHIP: One Sale has Many Items
-    // "cascade = CascadeType.ALL" means if we save the Sale, it automatically saves the Items too.
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SaleItem> items = new ArrayList<>();
 

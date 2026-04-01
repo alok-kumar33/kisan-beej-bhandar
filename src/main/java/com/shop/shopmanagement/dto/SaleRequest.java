@@ -12,6 +12,9 @@ public class SaleRequest {
     private String customerPhone;
     private String paymentMode;
 
+    // NEW FIELD: To capture the discount applied on the frontend
+    private BigDecimal discount;
+
     // A list of small objects representing rows in the cart
     private List<CartItem> cartItems;
 

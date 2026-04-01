@@ -16,11 +16,11 @@
         td { padding: 5px 0; border-bottom: 1px dotted #ccc; }
         .text-right { text-align: right; }
 
+        .discount-row { text-align: right; font-size: 14px; margin-bottom: 5px; padding-top: 10px; }
         .total-section { text-align: right; font-size: 18px; font-weight: bold; border-top: 2px solid #000; padding-top: 10px; }
 
         .footer { text-align: center; margin-top: 30px; font-size: 12px; border-top: 1px dashed #000; padding-top: 10px; }
 
-        /* New: Retailer Info Box */
         .retailer-box { margin-top: 5px; padding-top: 5px; border-top: 1px dotted #999; }
 
         .no-print { margin-bottom: 20px; text-align: center; }
@@ -93,6 +93,15 @@
     </tr>
     </tbody>
 </table>
+
+<div th:if="${sale.discount != null and sale.discount > 0}">
+    <div class="discount-row">
+        Subtotal: ₹ <span th:text="${sale.totalAmount + sale.discount}">0.00</span>
+    </div>
+    <div class="discount-row" style="color: #c0392b; font-weight: bold;">
+        Discount Applied: -₹ <span th:text="${sale.discount}">0.00</span>
+    </div>
+</div>
 
 <div class="total-section">
     Grand Total: ₹ <span th:text="${sale.totalAmount}">0.00</span>
