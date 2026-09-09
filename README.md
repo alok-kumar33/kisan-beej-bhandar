@@ -18,7 +18,7 @@ Live demo: [https://kisan-beej-bhandar.onrender.com/login](https://kisan-beej-bh
 
 | Checkout | Udhaar Ledger | WhatsApp Reminder | Receipt |
 |---|---|---|---|
-| <img width="1917" height="927" alt="checkout" src="https://github.com/user-attachments/assets/6f95443e-c2c9-4f41-b502-adcd23095306" /> | <img width="1913" height="927" alt="ledger" src="https://github.com/user-attachments/assets/262a03dc-8087-43b4-86da-abf555de5ce4" /> | <img width="1917" height="927" alt="Screenshot 2026-09-09 192131" src="https://github.com/user-attachments/assets/ecc57ead-2607-4576-a60b-ab25bdef0bbe" /> | <img width="1915" height="926" alt="receipt" src="https://github.com/user-attachments/assets/cc1ca304-e2b0-480f-b929-af4ac8dbc5e7" /> |
+| <img width="1917" height="927" alt="checkout" src="https://github.com/user-attachments/assets/6f95443e-c2c9-4f41-b502-adcd23095306" /> | <img width="1917" height="927" alt="Screenshot 2026-09-09 192131" src="https://github.com/user-attachments/assets/ecc57ead-2607-4576-a60b-ab25bdef0bbe" /> | <img width="1913" height="927" alt="ledger" src="https://github.com/user-attachments/assets/262a03dc-8087-43b4-86da-abf555de5ce4" /> | <img width="1915" height="926" alt="receipt" src="https://github.com/user-attachments/assets/cc1ca304-e2b0-480f-b929-af4ac8dbc5e7" /> |
 
 ## Tech Stack
 
